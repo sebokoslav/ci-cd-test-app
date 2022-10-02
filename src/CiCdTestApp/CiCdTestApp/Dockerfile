@@ -7,10 +7,10 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
-COPY ["CiCdTestApp/CiCdTestApp.csproj", "CiCdTestApp/"]
+COPY ["CiCdTestApp/CiCdTestApp/CiCdTestApp.csproj", "CiCdTestApp/"]
 RUN dotnet restore "CiCdTestApp/CiCdTestApp.csproj"
 COPY . .
-WORKDIR "/src/CiCdTestApp"
+WORKDIR "/src/CiCdTestApp/CiCdTestApp"
 RUN dotnet build "CiCdTestApp.csproj" -c Release -o /app/build
 
 FROM build AS publish
