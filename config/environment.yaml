@@ -49,7 +49,6 @@ kind: Service
 metadata:
   name: cicdtest-service
 spec:
-  type: NodePort
   selector:
     app: cicdtest
   ports:
