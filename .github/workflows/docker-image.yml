@@ -38,3 +38,9 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+    - 
+        name: Update version in the config file
+        run: |
+          cd ../../config
+          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.tags }}"
+        shell: pwsh
