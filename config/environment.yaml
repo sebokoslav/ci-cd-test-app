@@ -7,8 +7,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/sebokoslav/ci-cd-test-app:sebokoslav/ci-cd-test-app:v1.0.8
-sebokoslav/ci-cd-test-app:latest
+    repoURL: https://github.com/sebokoslav/ci-cd-test-app.git
     targetRevision: HEAD
     path: config
   destination: 
@@ -41,8 +40,7 @@ spec:
     spec:
       containers:
       - name: cicdtest
-        image: sebokoslav/ci-cd-test-app:sebokoslav/ci-cd-test-app:v1.0.8
-sebokoslav/ci-cd-test-app:latest
+        image: sebokoslav/ci-cd-test-app:v1.0.8
         ports:
         - containerPort: 8080
 ---
