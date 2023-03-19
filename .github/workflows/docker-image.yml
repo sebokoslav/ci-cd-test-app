@@ -47,7 +47,7 @@ jobs:
     - 
         name: Update version in the config file
         run: |
-          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app:.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.tags[0] }}"
+          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app:.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.version }}"
         working-directory: ./config
         shell: pwsh
     - 
