@@ -53,3 +53,5 @@ jobs:
     - 
         name: Commit the changed config file
         uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: main
