@@ -1,12 +1,10 @@
 name: Docker Image CI
 # Test
-on:
-  push:
-    tags:
-      - 'v*'
+on: [push]
 
 jobs:
   docker:
+    if: startsWith(github.event.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     permissions:
@@ -53,5 +51,3 @@ jobs:
     - 
         name: Commit the changed config file
         uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          branch: ${{ github.head_ref || github.ref_name }} 
