@@ -1,0 +1,14 @@
+name: Debug workflow
+
+on: [push]
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - 
+      name: Display github event
+      run: | 
+        echo ${{ github.event.ref }}
+        echo ${{ github.event }}
