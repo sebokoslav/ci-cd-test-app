@@ -1,6 +1,11 @@
 name: Docker Image CI
-# Test
-on: [push]
+
+on:
+  push:
+    branches:
+      - '*'
+    tags:
+      - 'v*'
 
 jobs:
   docker:
