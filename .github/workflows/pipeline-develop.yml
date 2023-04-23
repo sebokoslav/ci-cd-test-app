@@ -1,4 +1,4 @@
-name: CI pipeline - main
+name: CI pipeline - develop
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   pipeline:
-    if: endsWith(github.event.base_ref, 'main')
+    if: endsWith(github.event.base_ref, 'develop')
     runs-on: ubuntu-latest
 
     permissions:
@@ -55,4 +55,4 @@ jobs:
         name: Commit the changed config file
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          branch: main
+          branch: develop
