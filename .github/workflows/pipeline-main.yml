@@ -1,15 +1,13 @@
-name: Docker Image CI
+name: CI pipeline - main
 
 on:
   push:
-    branches:
-      - '*'
     tags:
       - 'v*'
 
 jobs:
-  docker:
-    if: startsWith(github.event.ref, 'refs/tags/v')
+  pipeline:
+    if: endsWith(github.event.base_ref, 'main')
     runs-on: ubuntu-latest
 
     permissions:
