@@ -1,0 +1,58 @@
+name: CI pipeline - stage
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  pipeline:
+    if: endsWith(github.event.base_ref, 'stage')
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+
+    steps:
+    - 
+      name: Checkout
+      uses: actions/checkout@v3
+    -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            sebokoslav/ci-cd-test-app
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=semver,pattern={{raw}}
+    -
+        name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+    -
+        name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: src/CiCdTestApp/
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+    - 
+        name: Update version in the config file
+        run: |
+          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app:.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.version }}"
+        working-directory: ./config
+        shell: pwsh
+    - 
+        name: Commit the changed config file
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: stage
