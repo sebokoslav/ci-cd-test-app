@@ -48,7 +48,7 @@ jobs:
     - 
         name: Update version in the config file
         run: |
-          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app:.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.version }}"
+          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app:.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.version }}" -FileName "environment.yaml"
         working-directory: ./config
         shell: pwsh
     - 
