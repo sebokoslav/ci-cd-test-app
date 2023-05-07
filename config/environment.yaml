@@ -25,7 +25,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cicdtest-deployment
+  name: cicdtest-deployment-production
   labels:
     app: cicdtest-production
 spec:
@@ -47,7 +47,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cicdtest-service
+  name: cicdtest-service-production
 spec:
   type: LoadBalancer
   selector:
