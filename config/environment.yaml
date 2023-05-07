@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: cicdtest-argo-application-production
-  namespace: argocd
+  namespace: cicdtest-production
 spec:
   project: default
 
