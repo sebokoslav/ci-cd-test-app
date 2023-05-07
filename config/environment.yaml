@@ -8,7 +8,7 @@ spec:
 
   source:
     repoURL: https://github.com/sebokoslav/ci-cd-test-app.git
-    targetRevision: HEAD
+    targetRevision: main
     path: config
   destination: 
     server: https://kubernetes.default.svc
