@@ -12,7 +12,7 @@ spec:
     path: config
   destination: 
     server: https://kubernetes.default.svc
-    namespace: cicdtest
+    namespace: cicdtest-production
 
   syncPolicy:
     syncOptions:
@@ -27,19 +27,19 @@ kind: Deployment
 metadata:
   name: cicdtest-deployment
   labels:
-    app: cicdtest
+    app: cicdtest-production
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: cicdtest
+      app: cicdtest-production
   template:
     metadata:
       labels:
-        app: cicdtest
+        app: cicdtest-production
     spec:
       containers:
-      - name: cicdtest
+      - name: cicdtest-production
         image: sebokoslav/ci-cd-test-app:v1.0.16
         ports:
         - containerPort: 8080
@@ -51,7 +51,7 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app: cicdtest
+    app: cicdtest-production
   ports:
     - protocol: TCP
       port: 3000
