@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cicdtest-argo-application-production
+  name: cicdtest-argo-application-stage
   namespace: argocd
 spec:
   project: default
 
   source:
     repoURL: https://github.com/sebokoslav/ci-cd-test-app.git
-    targetRevision: main
+    targetRevision: stage
     path: config
   destination: 
     server: https://kubernetes.default.svc
