@@ -1,4 +1,4 @@
-name: CI pipeline - develop
+name: Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   pipeline:
-    if: endsWith(github.event.base_ref, 'develop')
+    if: endsWith(github.event.base_ref, 'main')
     runs-on: ubuntu-latest
 
     permissions:
@@ -29,7 +29,7 @@ jobs:
             sebokoslav/ci-cd-test-app
           # generate Docker tags based on the following events/attributes
           tags: |
-            type=semver,pattern={{raw}}-develop
+            type=semver,pattern={{raw}}
     -
         name: Login to Docker Hub
         if: github.event_name != 'pull_request'
@@ -48,11 +48,11 @@ jobs:
     - 
         name: Update version in the config file
         run: |
-          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app:.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.version }}" -FileName "environment-develop.yaml"
+          .\update-version.ps1 -OldImageName "sebokoslav\/ci-cd-test-app:.*" -NewImageName "sebokoslav/ci-cd-test-app:${{ steps.meta.outputs.version }}" -FileName "environment.yaml"
         working-directory: ./config
         shell: pwsh
     - 
         name: Commit the changed config file
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          branch: develop
+          branch: main
