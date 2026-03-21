@@ -31,9 +31,6 @@ jobs:
       name: Determine Version
       id: gitversion
       uses: gittools/actions/gitversion/execute@v0
-      with:
-        useConfigFile: true
-        configFilePath: ./.gitversion
     
     -
       name: Docker meta
