@@ -1,0 +1,23 @@
+{
+  "mode": "ContinuousDeployment",
+  "tag-prefix": "v",
+  "branches": {
+    "develop": {
+      "increment": "Minor",
+      "prevent-increment-of-merged-branch-version": false,
+      "tag": "alpha"
+    },
+    "main": {
+      "increment": "Patch",
+      "prevent-increment-of-merged-branch-version": false
+    },
+    "feature": {
+      "regex": "^feature[/-](?<branchname>.+)$",
+      "increment": "Minor",
+      "prevent-increment-of-merged-branch-version": false,
+      "tag": "{branchname}"
+    }
+  },
+  "commit-message-increment-pattern": "^(feat|fix|refactor|perf|BREAKING CHANGE){1}(\\(.+\\))?!?:",
+  "commit-message-version-bump-pattern": "^(feat|fix|refactor|perf|BREAKING CHANGE){1}(\\(.+\\))?!?:"
+}
