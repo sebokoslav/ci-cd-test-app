@@ -36,10 +36,6 @@ jobs:
         configFilePath: ./.gitversion
     
     -
-      name: Display SemVer
-      run: echo 'SemVer: ${{ steps.gitversion.outputs.semVer }}'
-    
-    -
       name: Docker meta
       id: meta
       uses: docker/metadata-action@v4
