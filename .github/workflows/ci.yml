@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - 
+      name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    -
+      name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0
+      with:
+        versionSpec: '5.x'
+    
+    -
+      name: Determine Version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0
+      with:
+        useConfigFile: true
+        configFilePath: ./.gitversion
+    
+    -
+      name: Display SemVer
+      run: echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
+    
+    -
+      name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          sebokoslav/ci-cd-test-app
+        tags: |
+          type=semver,pattern={{version}},value=${{ steps.gitversion.outputs.semVer }}
+          type=semver,pattern={{major}}.{{minor}},value=${{ steps.gitversion.outputs.semVer }}
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    -
+      name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USER }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    -
+      name: Build and push
+      uses: docker/build-push-action@v3
+      with:
+        context: src/CiCdTestApp/
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
