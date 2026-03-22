@@ -14,6 +14,9 @@ jobs:
     permissions:
       contents: write
 
+    outputs:
+      version: ${{ steps.gitversion.outputs.semVer }}
+
     steps:
     - 
       name: Checkout

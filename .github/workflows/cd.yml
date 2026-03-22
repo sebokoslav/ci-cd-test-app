@@ -1,0 +1,74 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    -
+      name: Determine Target Environment
+      id: env
+      run: |
+        VERSION="${{ github.event.workflow_run.outputs.version }}"
+        BRANCH="${{ github.event.workflow_run.head_branch }}"
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        
+        if [[ ${VERSION} == *"alpha"* ]] || [[ ${BRANCH} == feature/* ]]; then
+          echo "environment=dev" >> $GITHUB_OUTPUT
+          echo "target_branch=dev" >> $GITHUB_OUTPUT
+        elif [[ ${VERSION} == *"beta"* ]]; then
+          echo "environment=test" >> $GITHUB_OUTPUT
+          echo "target_branch=test" >> $GITHUB_OUTPUT
+        elif [[ ! ${VERSION} == *"-"* ]]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+          echo "target_branch=prod" >> $GITHUB_OUTPUT
+        fi
+        echo "Deploying version ${VERSION} to ${{ steps.env.outputs.environment }}"
+
+    -
+      name: Checkout Config Repo
+      uses: actions/checkout@v3
+      with:
+        repository: sebokoslav/ci-cd-test-app-config
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: config-repo
+        ref: ${{ steps.env.outputs.target_branch }}
+
+    -
+      name: Update Version in values.yaml
+      working-directory: config-repo
+      run: |
+        # Update the image.tag field in values.yaml
+        sed -i 's/tag: .*/tag: ${{ steps.env.outputs.version }}/g' ci-cd-test/values.yaml
+        cat ci-cd-test/values.yaml | head -10
+
+    -
+      name: Commit and Push Changes
+      working-directory: config-repo
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add ci-cd-test/values.yaml
+        git commit -m "chore: update image tag to ${{ steps.env.outputs.version }}"
+        git push origin ${{ steps.env.outputs.target_branch }}
