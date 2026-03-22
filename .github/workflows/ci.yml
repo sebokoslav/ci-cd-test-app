@@ -15,7 +15,7 @@ jobs:
       contents: write
 
     outputs:
-      version: ${{ steps.gitversion.outputs.semVer }}
+      version: ${{ steps.gitversion.outputs.FullSemVer }}
 
     steps:
     - 
@@ -34,6 +34,10 @@ jobs:
       name: Determine Version
       id: gitversion
       uses: gittools/actions/gitversion/execute@v0
+      with:
+        useConfigFile: false
+        config: |
+          mode: ContinuousDeployment
     
     -
       name: Docker meta

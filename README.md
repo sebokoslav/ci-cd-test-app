@@ -1,6 +1,6 @@
 # ci-cd-test-app
 
-Test This is a repo for my own study and tinkering with: 
+This is a repo for my own study and tinkering with: 
 * GitHub's Ci/CD pipelines 
 * Local Kubernetes using Minikube
 * ArgoCD
