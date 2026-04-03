@@ -1,0 +1,114 @@
+name: CI/CD
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.gitversion.outputs.FullSemVer }}
+    steps:
+    - 
+      name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    -
+      name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0
+      with:
+        versionSpec: '5.x'
+    
+    -
+      name: Determine Version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0
+    
+    -
+      name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          sebokoslav/ci-cd-test-app
+        tags: |
+          type=semver,pattern={{version}},value=${{ steps.gitversion.outputs.semVer }}
+          type=semver,pattern={{major}}.{{minor}},value=${{ steps.gitversion.outputs.semVer }}
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    -
+      name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    -
+      name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USER }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    -
+      name: Build and push
+      uses: docker/build-push-action@v3
+      with:
+        context: src/CiCdTestApp/
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+    -
+      name: Determine Target Environment
+      id: env
+      run: |
+        VERSION="${{ needs.build.outputs.version }}"
+        BRANCH="${{ github.ref_name }}"
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+        if [[ ${VERSION} == *"alpha"* ]] || [[ ${BRANCH} == feature/* ]]; then
+          echo "environment=dev" >> $GITHUB_OUTPUT
+          echo "target_branch=dev" >> $GITHUB_OUTPUT
+        elif [[ ${VERSION} == *"beta"* ]]; then
+          echo "environment=test" >> $GITHUB_OUTPUT
+          echo "target_branch=test" >> $GITHUB_OUTPUT
+        elif [[ ! ${VERSION} == *"-"* ]]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+          echo "target_branch=prod" >> $GITHUB_OUTPUT
+        fi
+        echo "Deploying version ${VERSION} to ${{ steps.env.outputs.environment }}"
+    -
+      name: Checkout Config Repo
+      uses: actions/checkout@v3
+      with:
+        repository: sebokoslav/ci-cd-test-app-config
+        token: ${{ secrets.CONFIG_REPO_PAT }}
+        path: config-repo
+        ref: ${{ steps.env.outputs.target_branch }}
+    -
+      name: Update Version in values.yaml
+      working-directory: config-repo
+      run: |
+        sed -i 's/tag: .*/tag: ${{ steps.env.outputs.version }}/g' ci-cd-test/values.yaml
+        cat ci-cd-test/values.yaml | head -10
+    -
+      name: Commit and Push Changes
+      working-directory: config-repo
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add ci-cd-test/values.yaml
+        git commit -m "chore: update image tag to ${{ steps.env.outputs.version }}"
+        git push origin ${{ steps.env.outputs.target_branch }}
