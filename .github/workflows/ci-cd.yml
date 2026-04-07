@@ -32,6 +32,16 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0
     
     -
+      name: Create Release Tag
+      if: ${{ !contains(steps.gitversion.outputs.semVer, '-') }}
+      run: |
+        VERSION=${{ steps.gitversion.outputs.semVer }}
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "v${VERSION}" -m "Release version ${VERSION}"
+        git push origin "v${VERSION}"
+    
+    -
       name: Docker meta
       id: meta
       uses: docker/metadata-action@v4
