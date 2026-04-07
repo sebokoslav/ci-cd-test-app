@@ -21,6 +21,28 @@ jobs:
         fetch-depth: 0
     
     -
+      name: Validate Conventional Commits
+      uses: amannn/action-semantic-pull-request@v5
+      if: github.event_name == 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    -
+      name: Install commitlint
+      if: github.event_name == 'push'
+      run: npm install --save-dev @commitlint/cli @commitlint/config-conventional
+    
+    -
+      name: Create commitlint config
+      if: github.event_name == 'push'
+      run: echo "module.exports = { extends: ['@commitlint/config-conventional'] };" > commitlint.config.js
+    
+    -
+      name: Validate Commit Messages
+      if: github.event_name == 'push'
+      run: npx commitlint --from HEAD~1 --to HEAD
+    
+    -
       name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v0
       with:
