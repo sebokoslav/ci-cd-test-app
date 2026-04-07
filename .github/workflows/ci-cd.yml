@@ -5,6 +5,12 @@ on:
       - main
       - develop
       - 'feature/**'
+      - 'release/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - main
+      - develop
 
 jobs:
   build:
