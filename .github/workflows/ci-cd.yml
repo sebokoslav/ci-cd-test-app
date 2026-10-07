@@ -55,6 +55,10 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0
     
     -
+      name: Test
+      run: dotnet test src/CiCdTestApp.sln --configuration Release
+    
+    -
       name: Create Release Tag
       if: ${{ !contains(steps.gitversion.outputs.semVer, '-') }}
       run: |
@@ -101,6 +105,7 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     strategy:
+      max-parallel: 1
       matrix:
         deployment:
           - name: dev
@@ -136,7 +141,7 @@ jobs:
       working-directory: config-repo
       run: |
         VERSION="${{ needs.build.outputs.version }}"
-        sed -i 's|image: "sebokoslav/ci-cd-test-app:.*"|image: "sebokoslav/ci-cd-test-app:${VERSION}"|g' ci-cd-test/values.yaml
+        sed -i "s|image: \"sebokoslav/ci-cd-test-app:.*\"|image: \"sebokoslav/ci-cd-test-app:${VERSION}\"|g" ci-cd-test/values.yaml
         cat ci-cd-test/values.yaml | head -10
     -
       name: Commit and Push Changes
