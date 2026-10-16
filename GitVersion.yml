@@ -1,0 +1,21 @@
+# Ensure every commit produces a unique Docker tag (no overwrites on Docker Hub).
+#
+# GitFlow defaults run feature/release/hotfix branches in ContinuousDelivery mode:
+# the pre-release number stays pinned (.1) and only the +N build metadata grows.
+# Build metadata is stripped from Docker tags, so each subsequent push overwrote
+# the previous image tag (e.g. 1.1.0-commit-check.1 was pushed 5 times).
+#
+# ContinuousDeployment mode moves the commit counter into the pre-release number
+# (the same way develop already works by default with alpha.N):
+#   feature/foo    -> 1.1.0-foo.61, 1.1.0-foo.62, ...
+#   release/2.0.0  -> 2.0.0-beta.1, 2.0.0-beta.2, ...
+#   hotfix/xyz     -> 1.0.18-beta.1, 1.0.18-beta.2, ...
+#
+# develop (alpha.N), main (stable), and pull requests keep their default behavior.
+branches:
+  feature:
+    mode: ContinuousDeployment
+  release:
+    mode: ContinuousDeployment
+  hotfix:
+    mode: ContinuousDeployment

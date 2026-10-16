@@ -35,7 +35,9 @@ jobs:
     permissions:
       contents: write
     outputs:
-      version: ${{ steps.gitversion.outputs.FullSemVer }}
+      # semVer excludes build metadata (e.g. 1.0.17 instead of 1.0.17+20) so the
+      # config repo tag matches the Docker Hub tag
+      version: ${{ steps.gitversion.outputs.semVer }}
     steps:
     - 
       name: Checkout
