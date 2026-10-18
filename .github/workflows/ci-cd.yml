@@ -116,9 +116,6 @@ jobs:
           - name: test
             ref: test
             version: beta
-          - name: prod
-            ref: prod
-            version: release
     environment: ${{ matrix.deployment.name }}
     permissions:
       contents: read
@@ -127,9 +124,7 @@ jobs:
     -
       name: Checkout Config Repo
       uses: actions/checkout@v3
-      if: |
-        contains(needs.build.outputs.version, matrix.deployment.version) ||
-        (matrix.deployment.version == 'release' && !contains(needs.build.outputs.version, '-'))
+      if: contains(needs.build.outputs.version, matrix.deployment.version)
       with:
         repository: sebokoslav/ci-cd-test-app-config
         token: ${{ secrets.CONFIG_REPO_PAT }}
@@ -137,9 +132,7 @@ jobs:
         ref: ${{ matrix.deployment.ref }}
     -
       name: Update Version in values.yaml
-      if: |
-        contains(needs.build.outputs.version, matrix.deployment.version) ||
-        (matrix.deployment.version == 'release' && !contains(needs.build.outputs.version, '-'))
+      if: contains(needs.build.outputs.version, matrix.deployment.version)
       working-directory: config-repo
       run: |
         VERSION="${{ needs.build.outputs.version }}"
@@ -147,9 +140,7 @@ jobs:
         cat ci-cd-test/values.yaml | head -10
     -
       name: Commit and Push Changes
-      if: |
-        contains(needs.build.outputs.version, matrix.deployment.version) ||
-        (matrix.deployment.version == 'release' && !contains(needs.build.outputs.version, '-'))
+      if: contains(needs.build.outputs.version, matrix.deployment.version)
       working-directory: config-repo
       run: |
         git config user.name "github-actions[bot]"
@@ -157,3 +148,44 @@ jobs:
         git add ci-cd-test/values.yaml
         git diff --staged --quiet || git commit -m "chore: update image tag to ${{ needs.build.outputs.version }}"
         git push origin ${{ matrix.deployment.ref }}
+
+  # Prod is split out of the matrix so the job (and the protected 'prod'
+  # environment it references) is only created for stable releases. A matrix leg
+  # referencing 'environment: prod' is instantiated on every push, and the
+  # environment's branch protection rejects feature/hotfix branches -> red X
+  # even though all steps would have been skipped anyway.
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      github.event_name != 'pull_request' &&
+      !contains(needs.build.outputs.version, '-')
+    environment: prod
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+    -
+      name: Checkout Config Repo
+      uses: actions/checkout@v3
+      with:
+        repository: sebokoslav/ci-cd-test-app-config
+        token: ${{ secrets.CONFIG_REPO_PAT }}
+        path: config-repo
+        ref: prod
+    -
+      name: Update Version in values.yaml
+      working-directory: config-repo
+      run: |
+        VERSION="${{ needs.build.outputs.version }}"
+        sed -i "s|image: \"sebokoslav/ci-cd-test-app:.*\"|image: \"sebokoslav/ci-cd-test-app:${VERSION}\"|g" ci-cd-test/values.yaml
+        cat ci-cd-test/values.yaml | head -10
+    -
+      name: Commit and Push Changes
+      working-directory: config-repo
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add ci-cd-test/values.yaml
+        git diff --staged --quiet || git commit -m "chore: update image tag to ${{ needs.build.outputs.version }}"
+        git push origin prod
