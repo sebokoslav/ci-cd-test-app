@@ -1,8 +1,8 @@
-name: CI/CD
+name: Pre-release (build, test, deploy dev/test)
 on:
   push:
+    # Pre-release branches only: main is handled by create-tag.yml
     branches:
-      - main
       - develop
       - 'feature/**'
       - 'release/**'
@@ -19,51 +19,46 @@ jobs:
     permissions:
       contents: read
     steps:
-    - 
+    -
       name: Checkout
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    
+
     -
       name: Validate Conventional Commits
       uses: amannn/action-semantic-pull-request@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     outputs:
-      version: ${{ steps.gitversion.outputs.FullSemVer }}
+      version: ${{ steps.gitversion.outputs.semVer }}
     steps:
-    - 
+    -
       name: Checkout
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    
+
     -
       name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v0
       with:
         versionSpec: '5.x'
-    
+
     -
       name: Determine Version
       id: gitversion
       uses: gittools/actions/gitversion/execute@v0
-    
+
     -
-      name: Create Release Tag
-      if: ${{ !contains(steps.gitversion.outputs.semVer, '-') }}
-      run: |
-        VERSION=${{ steps.gitversion.outputs.semVer }}
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag -a "v${VERSION}" -m "Release version ${VERSION}"
-        git push origin "v${VERSION}"
-    
+      name: Test
+      run: dotnet test src/CiCdTestApp.sln --configuration Release
+
     -
       name: Docker meta
       id: meta
@@ -71,22 +66,22 @@ jobs:
       with:
         images: |
           sebokoslav/ci-cd-test-app
+        # Every version here is a pre-release (alpha/beta/branch label), so
+        # 'latest' never applies to these images
         tags: |
           type=semver,pattern={{version}},value=${{ steps.gitversion.outputs.semVer }}
-          type=semver,pattern={{major}}.{{minor}},value=${{ steps.gitversion.outputs.semVer }}
-          type=raw,value=latest,enable={{is_default_branch}}
-    
+
     -
       name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    
+
     -
       name: Login to Docker Hub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-    
+
     -
       name: Build and push
       uses: docker/build-push-action@v3
@@ -100,49 +95,47 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name != 'pull_request'
+    strategy:
+      max-parallel: 1
+      matrix:
+        deployment:
+          - name: dev
+            ref: dev
+            version: alpha
+          - name: test
+            ref: test
+            version: beta
+    environment: ${{ matrix.deployment.name }}
     permissions:
       contents: read
       pull-requests: write
     steps:
     -
-      name: Determine Target Environment
-      id: env
-      run: |
-        VERSION="${{ needs.build.outputs.version }}"
-        BRANCH="${{ github.ref_name }}"
-        echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-        if [[ ${VERSION} == *"alpha"* ]] || [[ ${BRANCH} == feature/* ]]; then
-          echo "environment=dev" >> $GITHUB_OUTPUT
-          echo "target_branch=dev" >> $GITHUB_OUTPUT
-        elif [[ ${VERSION} == *"beta"* ]]; then
-          echo "environment=test" >> $GITHUB_OUTPUT
-          echo "target_branch=test" >> $GITHUB_OUTPUT
-        elif [[ ! ${VERSION} == *"-"* ]]; then
-          echo "environment=prod" >> $GITHUB_OUTPUT
-          echo "target_branch=prod" >> $GITHUB_OUTPUT
-        fi
-        echo "Deploying version ${VERSION} to ${{ steps.env.outputs.environment }}"
-    -
       name: Checkout Config Repo
       uses: actions/checkout@v3
+      if: contains(needs.build.outputs.version, matrix.deployment.version)
       with:
         repository: sebokoslav/ci-cd-test-app-config
         token: ${{ secrets.CONFIG_REPO_PAT }}
         path: config-repo
-        ref: ${{ steps.env.outputs.target_branch }}
+        ref: ${{ matrix.deployment.ref }}
+
     -
       name: Update Version in values.yaml
+      if: contains(needs.build.outputs.version, matrix.deployment.version)
       working-directory: config-repo
       run: |
-        sed -i 's|image: "sebokoslav/ci-cd-test-app:.*"|image: "sebokoslav/ci-cd-test-app:${{ steps.env.outputs.version }}"|g' ci-cd-test/values.yaml
+        VERSION="${{ needs.build.outputs.version }}"
+        sed -i "s|image: \"sebokoslav/ci-cd-test-app:.*\"|image: \"sebokoslav/ci-cd-test-app:${VERSION}\"|g" ci-cd-test/values.yaml
         cat ci-cd-test/values.yaml | head -10
+
     -
       name: Commit and Push Changes
+      if: contains(needs.build.outputs.version, matrix.deployment.version)
       working-directory: config-repo
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add ci-cd-test/values.yaml
-        git diff --staged --quiet || git commit -m "chore: update image tag to ${{ steps.env.outputs.version }}"
-        git push origin ${{ steps.env.outputs.target_branch }}
+        git diff --staged --quiet || git commit -m "chore: update image tag to ${{ needs.build.outputs.version }}"
+        git push origin ${{ matrix.deployment.ref }}
