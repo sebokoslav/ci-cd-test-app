@@ -1,0 +1,46 @@
+name: Tag (mint vX.Y.Z from main)
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      # write: this job pushes the vX.Y.Z release tag
+      contents: write
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    -
+      name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0
+      with:
+        versionSpec: '5.x'
+
+    -
+      name: Determine Version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0
+
+    -
+      name: Test
+      run: dotnet test src/CiCdTestApp.sln --configuration Release
+
+    -
+      name: Create Release Tag
+      # main yields the stable version; the tag push hands over to
+      # release.yml, which is the only pipeline that publishes the stable
+      # image and deploys to prod
+      if: ${{ !contains(steps.gitversion.outputs.semVer, '-') }}
+      run: |
+        VERSION=${{ steps.gitversion.outputs.semVer }}
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "v${VERSION}" -m "Release version ${VERSION}"
+        git push origin "v${VERSION}"
